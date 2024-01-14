@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   InputLabel,
   FormControl,
@@ -20,7 +20,7 @@ const AddItems = ({ onRemove, onSave }) => {
   const [listParams, setListParams] = React.useState("");
   const [functionDropDown, setfunctionDropDown] = useState("");
   const [paramDropDown, setParamDropDown] = useState([]);
-  const [supportedDataTypesDropDown, setSupportedDataTypesDropDown] = useState("");
+  const [supportedDataTypesDropDown, setSupportedDataTypesDropDown] = useState([]);
   const [selectedParam, setSelectedParam] = useState("");
   const [inputLIT, setInputLIT] = useState("");
   const [isVisible, setIsVisible] = useState(true);
@@ -30,47 +30,57 @@ const AddItems = ({ onRemove, onSave }) => {
 
   const handleChangeInputs = (event) => {
     setListInputs(event.target.value);
+	setfunctionDropDown("");
     switch (event.target.value) {
       case "file1.csv":
         setColumns(listaInput.inputList[0].columns);
         break;
       case "file2.csv":
-        setColumns(listaInput.inputList[0].columns);
+        setColumns(listaInput.inputList[1].columns);
         break;
       case "file3.csv":
-        setColumns(listaInput.inputList[0].columns);
+        setColumns(listaInput.inputList[2].columns);
         break;
       default:
         return [];
     }
   };
 
-  const handleFirstDropdownChange = (event) => {
-    const selectedValue = event.target.value;
-    setfunctionDropDown(selectedValue);
+const handleFirstDropdownChange = (event) => {
+	const selectedValue = event.target.value;
+	setfunctionDropDown(selectedValue);
 
-    const optionsForSecondDropdown = getOptionsForSecondDropdown(selectedValue);
-    const optionsForThirdDropdown = getOptionsForThirdDropdown(selectedValue);
-    setParamDropDown(optionsForSecondDropdown);
-    setSupportedDataTypesDropDown(optionsForThirdDropdown);
-  };
+	const optionsForParamDropdown = getOptionsForSecondDropdown(selectedValue);
+	const optionsForFunctionTypeDropdown = getOptionsForFunctionTypeDropdown(selectedValue);
+	setParamDropDown(optionsForParamDropdown);
 
-  const getOptionsForSecondDropdown = (firstDropdownValue) => {
+	let columnTypes = []; 
+	columns.map((item) => {
+		optionsForFunctionTypeDropdown.filter(type => type === item.columnType);
+		columnTypes.push(item.columnType); 
+		return null; 
+	});
+	let uniqueColumnTypes = [...new Set(columnTypes)];
+	const filteredOptionsForDataTypesDropdown = optionsForFunctionTypeDropdown.filter(item => uniqueColumnTypes.includes(item));
+	setSupportedDataTypesDropDown(filteredOptionsForDataTypesDropdown);
+};
 
-    switch (firstDropdownValue) {
-      case "somar":
-        return listaFuncoes.data[0].supportedValueTypes;
-      case "subtrair":
-        return listaFuncoes.data[1].supportedValueTypes;
-      case "filtrar":
-        return listaFuncoes.data[2].supportedValueTypes;
-      default:
-        return [];
-    }
-  };
+	const getOptionsForSecondDropdown = (event) => {
 
-  const getOptionsForThirdDropdown = (secondDropdownValue) => {
-    switch (secondDropdownValue) {
+		switch (event) {
+			case "somar":
+				return listaFuncoes.data[0].supportedValueTypes;
+			case "subtrair":
+				return listaFuncoes.data[1].supportedValueTypes;
+			case "filtrar":
+				return listaFuncoes.data[2].supportedValueTypes;
+			default:
+				return [];
+		}
+	};
+
+  const getOptionsForFunctionTypeDropdown = (event) => {
+    switch (event) {
       case "somar":
         return listaFuncoes.data[0].supportedDataTypes;
       case "subtrair":
@@ -82,14 +92,13 @@ const AddItems = ({ onRemove, onSave }) => {
     }
   };
 
+
   const handleChangeParams = (event) => {
-    console.log(event.target.value);
     setListParams(event.target.value);
     setSelectedParam(event.target.value);
   };
 
   const handleChangeSupportedDataTypes = (event) => {
-    console.log(event.target.value);
     setSupportedDataTypes(event.target.value);
   };
 
@@ -142,6 +151,12 @@ const AddItems = ({ onRemove, onSave }) => {
   const deleteItem = () => {
     onRemove();
   };
+
+  useEffect(() => {
+	// Update functionDropDown here
+	// For example, if functionDropDown is a state variable:
+	//setFunctionDropDown(someValue); // replace someValue with the value you want to set
+  }, [listInputs]); // listInputs is the dependency
 
    return (
     <Box
