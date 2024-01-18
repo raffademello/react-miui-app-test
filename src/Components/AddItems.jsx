@@ -20,7 +20,7 @@ const AddItems = ({ onRemove, onSave }) => {
   const [listParams, setListParams] = React.useState("");
   const [functionDropDown, setfunctionDropDown] = useState("");
   const [paramDropDown, setParamDropDown] = useState([]);
-  const [supportedDataTypesDropDown, setSupportedDataTypesDropDown] = useState([]);
+  const [columnNamesDropDown, setcolumnNamesDropDown] = useState([]);
   const [selectedParam, setSelectedParam] = useState("");
   const [inputLIT, setInputLIT] = useState("");
   const [isVisible, setIsVisible] = useState(true);
@@ -31,39 +31,41 @@ const AddItems = ({ onRemove, onSave }) => {
   const handleChangeInputs = (event) => {
     setListInputs(event.target.value);
 	setfunctionDropDown("");
+	let newColumns = [];
     switch (event.target.value) {
       case "file1.csv":
-        setColumns(listaInput.inputList[0].columns);
+        newColumns = listaInput.inputList[0].columns;
         break;
       case "file2.csv":
-        setColumns(listaInput.inputList[1].columns);
+		newColumns = listaInput.inputList[1].columns;
         break;
       case "file3.csv":
-        setColumns(listaInput.inputList[2].columns);
+        newColumns = listaInput.inputList[2].columns;
         break;
       default:
         return [];
     }
+
+	setColumns(newColumns);
+  	console.log("columns", newColumns);
   };
 
-const handleFirstDropdownChange = (event) => {
-	const selectedValue = event.target.value;
-	setfunctionDropDown(selectedValue);
+  const handleFirstDropdownChange = (event) => {
+    const selectedValue = event.target.value;
+    setfunctionDropDown(selectedValue);
 
-	const optionsForParamDropdown = getOptionsForSecondDropdown(selectedValue);
-	const optionsForFunctionTypeDropdown = getOptionsForFunctionTypeDropdown(selectedValue);
-	setParamDropDown(optionsForParamDropdown);
+    const optionsForParamDropdown = getOptionsForSecondDropdown(selectedValue);
+    const optionsForFunctionTypeDropdown = getOptionsForFunctionTypeDropdown(selectedValue);
+    setParamDropDown(optionsForParamDropdown);
 
-	let columnTypes = []; 
-	columns.map((item) => {
-		optionsForFunctionTypeDropdown.filter(type => type === item.columnType);
-		columnTypes.push(item.columnType); 
-		return null; 
-	});
-	let uniqueColumnTypes = [...new Set(columnTypes)];
-	const filteredOptionsForDataTypesDropdown = optionsForFunctionTypeDropdown.filter(item => uniqueColumnTypes.includes(item));
-	setSupportedDataTypesDropDown(filteredOptionsForDataTypesDropdown);
-};
+    // Filtrar apenas as colunas cujo columnType está presente no supportedDataTypes da função selecionada
+    const filteredColumns = columns.filter((column) =>
+      optionsForFunctionTypeDropdown.includes(column.columnType)
+    );
+
+    setcolumnNamesDropDown(filteredColumns.map((column) => column.columnName));
+  };
+
 
 	const getOptionsForSecondDropdown = (event) => {
 
@@ -106,26 +108,36 @@ const handleFirstDropdownChange = (event) => {
     setInputLIT(event.target.value);
   };
 
-  let jsonData;
   const saveData = () => {
+    let jsonData;
 
-    if (selectedParam === "COL") {
-      jsonData = {
-        outputdata: {
-          id: Date.now(),
-          cells: [
-            {
-              id: Date.now(),
-              functionName: functionDropDown,
-              param: {
-                type: selectedParam,
-                columns: columns,
+    if (selectedParam === "COL" && supportedDataTypes) {
+      const selectedColumn = columns.find(
+        (column) => column.columnName === supportedDataTypes
+      );
+
+      if (selectedColumn) {
+        jsonData = {
+          outputdata: {
+            id: Date.now(),
+            cells: [
+              {
+                id: Date.now(),
+                functionName: functionDropDown,
+                param: {
+                  type: "COL",
+                  column: {
+                    columnId: selectedColumn.columnId,
+                    columnName: selectedColumn.columnName,
+                    columnType: selectedColumn.columnType,
+                  },
+                },
               },
-            },
-          ],
-        },
-      };
-    } else {
+            ],
+          },
+        };
+      }
+    } else if (selectedParam === "LIT") {
       jsonData = {
         outputdata: {
           id: Date.now(),
@@ -134,8 +146,8 @@ const handleFirstDropdownChange = (event) => {
               id: Date.now(),
               functionName: functionDropDown,
               param: {
-                type: selectedParam,
-                value: inputLIT,
+                type: "LIT",
+                literalValue: inputLIT,
               },
             },
           ],
@@ -143,9 +155,8 @@ const handleFirstDropdownChange = (event) => {
       };
     }
 
-
     onSave(jsonData);
-	setIsVisible(false);
+    setIsVisible(false);
   };
 
   const deleteItem = () => {
@@ -153,10 +164,7 @@ const handleFirstDropdownChange = (event) => {
   };
 
   useEffect(() => {
-	// Update functionDropDown here
-	// For example, if functionDropDown is a state variable:
-	//setFunctionDropDown(someValue); // replace someValue with the value you want to set
-  }, [listInputs]); // listInputs is the dependency
+  }, [listInputs]);
 
    return (
     <Box
@@ -220,7 +228,7 @@ const handleFirstDropdownChange = (event) => {
         </>
       )}
 
-      {supportedDataTypesDropDown.length > 0 && (
+      {functionDropDown.length > 0 && (
         <>
           <FormControl>
             {selectedParam === "COL" ? (
@@ -228,10 +236,10 @@ const handleFirstDropdownChange = (event) => {
                 <InputLabel>Escolha o supportedDataTypes</InputLabel>
                 <Select
                   value={supportedDataTypes}
-                  label="Escolha Input"
+                  label="Escolha o columnName"
                   onChange={handleChangeSupportedDataTypes}
                 >
-                  {supportedDataTypesDropDown.map((option, index) => (
+                  {columnNamesDropDown.map((option, index) => (
                     <MenuItem key={index} value={option}>
                       {option}
                     </MenuItem>
